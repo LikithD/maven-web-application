@@ -1,0 +1,42 @@
+pipeline {
+    agent any 
+    tools{
+        maven 'durba-maven'
+    }
+    stages {
+        stage('getting code from git') { 
+            steps {
+                git 'https://github.com/LikithD/maven-web-application.git'
+                  }
+        }
+         stage('package creation') {
+            steps{
+                sh "mvn clean package"
+                 }
+         } 
+         stage('quality check') {
+             steps{
+                 sh "mvn sonar:sonar"
+             }
+         }
+         stage('sending into nexus') {
+             steps{
+                 sh "mvn deploy"
+             }
+         }
+         stage('deploying into tomcat') {
+             steps{
+                sshagent(['cc8551e3-4c67-44ed-a1be-5a35d9c6c9bb']) {
+                    sh "scp -o StrictHostKeyChecking=no target/maven-web-application.war ec2-user@3.89.243.237:/opt/apache-tomcat-9.0.64/webapps/"
+             }
+         }
+    }
+}
+        post{
+            always{
+                emailext body: '''Hi likith
+this is the output of the build
+''', subject: 'My practice ', to: 'likki.likith@gmail.com'
+            }
+        }
+}  
